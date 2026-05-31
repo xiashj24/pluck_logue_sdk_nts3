@@ -1,7 +1,6 @@
 #pragma once
 #include <cstddef>
-#include <array>
-#include <numeric>
+#include <algorithm>
 
 #include "utility.hpp"
 
@@ -11,6 +10,11 @@ class DelayLine
   static_assert((N > 1) && ((N & (N - 1)) == 0), "N must be power of 2");
 
 public:
+  void set_memory(float *mem)
+  {
+    samples = mem;
+  }
+
   void write(float sample)
   {
     ++current_pos;
@@ -19,7 +23,7 @@ public:
 
   void clear()
   {
-    samples.fill(0.f);
+    std::fill(samples, samples + N, 0.f);
   }
 
   float read_linear(float delay) const
@@ -61,6 +65,6 @@ private:
   }
 
   static constexpr size_t mask = N - 1;
-  std::array<float, N> samples = {};
+  float *samples = nullptr;
   size_t current_pos = 0;
 };

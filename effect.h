@@ -70,7 +70,7 @@ inline float overdrive(float x, float drive)
 class Effect : public Processor
 {
 public:
-  uint32_t getBufferSize() const override final { return 0; }
+  uint32_t getBufferSize() const override final { return N; } // N floats for the delay line
 
   // audio parameters
   enum
@@ -165,6 +165,8 @@ public:
   void init(float *allocated_buffer) override final
   {
     buffer = allocated_buffer;
+    // tell the delayline to use allocated buffer instead of static storage
+    delay.set_memory(buffer);
     params.reset();
     damp_filter.reset();
     noise_filter.reset();
