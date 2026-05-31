@@ -55,7 +55,7 @@ const __unit_header genericfx_unit_header_t unit_header = {
       // Format: min, max, center (unused), default, type, frac. bits, frac. mode, <reserved>, name
       // See common/runtime.h for type enum and unit_param_t structure
 
-      {0, 1023, 0, 512,  k_unit_param_type_none, 0, 0, 0, {"DAMP"}},
+      {0, 1023, 0, 0,    k_unit_param_type_none, 0, 0, 0, {"DAMP"}},
       {0, 1023, 0, 1023, k_unit_param_type_none, 0, 0, 0, {"DECAY"}},
       {0, 1023, 0, 1023, k_unit_param_type_none, 0, 0, 0, {"NOISE CUTOFF"}},
       {0, 1023, 0, 0,    k_unit_param_type_none, 0, 0, 0, {"PICKUP POS"}},
@@ -66,12 +66,9 @@ const __unit_header genericfx_unit_header_t unit_header = {
     },
   },
   .default_mappings = {
-    // No parameters are mapped to X or Y — touch events drive note triggering directly.
-    // All parameters are fixed; users may remap via the device UI.
-
     // Format: assign, curve, curve polarity, min, max, default value
-    {k_genericfx_param_assign_none, k_genericfx_curve_linear, k_genericfx_curve_unipolar, 0, 1023, 512},   // DAMP
-    {k_genericfx_param_assign_none, k_genericfx_curve_linear, k_genericfx_curve_unipolar, 0, 1023, 1023},  // DECAY
+    {k_genericfx_param_assign_y, k_genericfx_curve_linear, k_genericfx_curve_unipolar, 0, 1023, 0},     // DAMP
+    {k_genericfx_param_assign_depth, k_genericfx_curve_linear, k_genericfx_curve_unipolar, 0, 1023, 1023},  // DECAY
     {k_genericfx_param_assign_none, k_genericfx_curve_linear, k_genericfx_curve_unipolar, 0, 1023, 1023},  // NOISE CUTOFF
     {k_genericfx_param_assign_none, k_genericfx_curve_linear, k_genericfx_curve_unipolar, 0, 1023, 0},     // PICKUP POS
     {k_genericfx_param_assign_none, k_genericfx_curve_linear, k_genericfx_curve_unipolar, 0, 1023, 0},     // DRIVE

@@ -63,9 +63,9 @@ inline float overdrive(float x, float drive)
  * @brief Karplus-Strong waveguide synthesis for NTS-3 kaoss pad kit.
  * @author Shijie Xia (xiashj@korg.co.jp)
  *
- * Touch X maps to 12 chromatic notes (C–B) within one octave.
- * Touch Y maps to octave (C1–B5, MIDI 24–83).
- * Velocity is fixed at 127.
+ * Touch X maps continuously to pitch (C1–C5, 4 octaves).
+ * Touch Y maps to damp (bottom=bright, top=dark).
+ * Sliding after the initial pluck applies portamento without retriggering.
  */
 class Effect : public Processor
 {
@@ -100,7 +100,7 @@ public:
 
     void reset()
     {
-      damp = 0.5f;
+      damp = 0.f;
       decay = 1.f;
       noise_cutoff = 1.f;
       pickup_pos = 0.f;
@@ -178,6 +178,13 @@ public:
   // audio processing callbacks
   void process(const float *__restrict in, float *__restrict out, uint32_t frames) override final
   {
+    // Portamento: advance pitch toward target once per frame (k-rate)
+    {
+      const float dt = static_cast<float>(frames) / getSampleRate();
+      const float coeff = 1.f - std::exp(-dt / 0.08f); // 80ms time constant
+      pitch += coeff * (target_pitch - pitch);
+    }
+
     const Params p = params;
 
     // dispersion: first-order Thiran allpass cascade with loop-delay compensation
@@ -258,22 +265,27 @@ public:
   inline void touchEvent(uint8_t id, uint8_t phase, uint32_t x, uint32_t y) override final
   {
     (void)id;
+    (void)y;
+
+    // X: continuous pitch over 4 octaves, C1 (MIDI 24) to C5 (MIDI 72)
+    const float x_norm = static_cast<float>(x) / 1023.f;
+    const float hz = note_to_hz(24) * std::pow(2.f, x_norm * 4.f);
 
     if (phase == k_unit_touch_phase_began)
     {
-      // X: 0-1023 -> 12 chromatic semitones (C=0 .. B=11)
-      uint8_t semitone = static_cast<uint8_t>((x * 12) / 1024);
-      // Y: 0-1023 -> 5 octaves (bottom=octave 0, top=octave 4); base C1 = MIDI 24
-      uint8_t octave = static_cast<uint8_t>((y * 5) / 1024);
-      pluck(static_cast<uint8_t>(24 + octave * 12 + semitone));
+      pitch = hz;        // snap to touch position immediately on pluck
+      target_pitch = hz;
+      pluck();
+    }
+    else if (phase == k_unit_touch_phase_moved)
+    {
+      target_pitch = hz; // portamento applied in process()
     }
   }
 
 private:
-  void pluck(uint8_t note)
+  void pluck()
   {
-    pitch = note_to_hz(note);
-
     // reset every filter inside the loop
     delay.clear();
     damp_filter.reset();
@@ -335,6 +347,7 @@ private:
   float *buffer = nullptr;
   Params params;
   float pitch = 440.f;
+  float target_pitch = 440.f;
 
   static constexpr size_t N = 4096;
   DelayLine<N> delay;
