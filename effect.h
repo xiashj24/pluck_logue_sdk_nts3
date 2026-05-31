@@ -185,6 +185,8 @@ public:
     return y;
   }
 
+  void mute() { delay.clear(); }
+
   float pitch = 440.f;
 
 private:
@@ -338,22 +340,42 @@ public:
   inline void touchEvent(uint8_t id, uint8_t phase, uint32_t x, uint32_t y) override final
   {
     (void)id;
-    (void)y;
 
-    if (phase != k_unit_touch_phase_began)
+    if (phase == k_unit_touch_phase_ended || phase == k_unit_touch_phase_cancelled)
+    {
+      for (auto &v : voices)
+        v.mute();
+      last_col = last_row = UINT32_MAX;
       return;
+    }
 
-    // X: C major scale, 6 octaves (C1–B6), 42 scale degrees
-    static constexpr uint8_t major[7] = {0, 2, 4, 5, 7, 9, 11};
-    const uint32_t degree = (x * 42) / 1024;
-    const uint8_t note = static_cast<uint8_t>(24 + (degree / 7) * 12 + major[degree % 7]);
+    // Tonnetz grid: 12 cols × 8 rows
+    // note = BASE_NOTE + col·1 + row·5  (semitones, like a bass neck)
+    const uint32_t col = (x * COLS) / 1024;
+    const uint32_t row = (y * ROWS) / 1024;
+
+    if (phase == k_unit_touch_phase_began || col != last_col || row != last_row)
+    {
+      pluck_note(static_cast<uint8_t>(BASE_NOTE + col + row * 5));
+      last_col = col;
+      last_row = row;
+    }
+  }
+
+  void pluck_note(uint8_t note)
+  {
     const size_t slot = allocator.note_on(note);
     voices[slot].pluck(note_to_hz(note), params);
   }
 
-private:
+  static constexpr uint32_t COLS      = 12;
+  static constexpr uint32_t ROWS      = 8;
+  static constexpr uint8_t  BASE_NOTE = 24; // C1; grid spans C1–Bb4 (MIDI 24–70)
+
   float *buffer = nullptr;
   Params params;
   std::array<Waveguide, NUM_VOICES> voices;
   VoiceAllocator<NUM_VOICES> allocator;
+  uint32_t last_col = UINT32_MAX;
+  uint32_t last_row = UINT32_MAX;
 };
