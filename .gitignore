@@ -2,3 +2,4 @@ build/**
 sim/**
 
 *.nts1mkiiunit
+*.nts3unit
