@@ -1,7 +1,5 @@
 #pragma once
-
 #include <cmath>
-#include <numbers>
 
 // first-order IIR filter
 // H(z) = (a0 + a1*z^-1) / (1 + b1*z^-1)
